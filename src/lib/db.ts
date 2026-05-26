@@ -1,6 +1,6 @@
 // src/lib/db.ts
 import { ref, get, set, update, remove, onValue, off } from 'firebase/database';
-import { db } from './firebase';
+import { db, isFirebaseConfigured } from './firebase';
 import {
   Teacher, Student, Subject, MarksMap, MarkEntry,
   DEFAULT_CLASSES, DEFAULT_SUBJECTS, DEFAULT_TEACHERS
@@ -8,25 +8,36 @@ import {
 
 const PREFIX = 'bcb/';
 
+function checkConfig() {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase configuration is missing. Please create a .env.local file with Firebase credentials.');
+  }
+}
+
 // ── Generic helpers ──────────────────────────────────────────
 export async function dbGet<T>(path: string): Promise<T | null> {
+  checkConfig();
   const snap = await get(ref(db, PREFIX + path));
   return snap.exists() ? (snap.val() as T) : null;
 }
 
 export async function dbSet<T>(path: string, value: T): Promise<void> {
+  checkConfig();
   await set(ref(db, PREFIX + path), value);
 }
 
 export async function dbUpdate(path: string, updates: Record<string, unknown>): Promise<void> {
+  checkConfig();
   await update(ref(db, PREFIX + path), updates);
 }
 
 export async function dbRemove(path: string): Promise<void> {
+  checkConfig();
   await remove(ref(db, PREFIX + path));
 }
 
 export function dbListen<T>(path: string, cb: (val: T | null) => void) {
+  checkConfig();
   const r = ref(db, PREFIX + path);
   onValue(r, snap => cb(snap.exists() ? snap.val() as T : null));
   return () => off(r);
